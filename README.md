@@ -127,6 +127,22 @@ You can still change the model in the UI. When `--checkpoint` is omitted, the UI
 automatically select a local `checkpoint_*.pt` or `checkpoint_*.safetensors` if available,
 otherwise falling back to `Aratako/Irodori-TTS-v4.1-Small`.
 
+Both UIs also accept `--model-device`, `--model-precision`, `--codec-device`, and
+`--codec-precision` to set the initial device and precision selections:
+
+```bash
+uv run --no-sync python gradio_app.py \
+  --checkpoint Aratako/Irodori-TTS-v4.1-Small \
+  --model-device cuda --model-precision bf16 \
+  --codec-device cpu --codec-precision fp32
+```
+
+The same options work with `gradio_app_voicedesign.py`. Device choices depend on the
+available hardware and PyTorch backend (`cuda`, `mps`, `xpu`, or `cpu`). Precision
+choices are `fp32` and, on CUDA/XPU, `bf16`. Unsupported combinations are rejected at
+startup. Omitted device options use automatic selection, and omitted precision
+options use `fp32`. These selections can still be changed in the UI.
+
 The hosted [v4.1-Small demo](https://huggingface.co/spaces/Aratako/Irodori-TTS-v4.1-Small-Demo)
 also supports caption and reference-audio conditioning.
 

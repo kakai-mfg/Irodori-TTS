@@ -394,14 +394,32 @@ def _clear_runtime_cache() -> str:
     return "cleared loaded model from memory"
 
 
-def build_ui(default_checkpoint: str | None = None) -> gr.Blocks:
+def build_ui(
+    default_checkpoint: str | None = None,
+    *,
+    default_model_device: str | None = None,
+    default_model_precision: str | None = None,
+    default_codec_device: str | None = None,
+    default_codec_precision: str | None = None,
+) -> gr.Blocks:
     if default_checkpoint is None:
         default_checkpoint = _default_checkpoint()
-    default_model_device = _default_model_device()
-    default_codec_device = _default_codec_device()
+    if default_model_device is None:
+        default_model_device = _default_model_device()
+    if default_codec_device is None:
+        default_codec_device = _default_codec_device()
     device_choices = list_available_runtime_devices()
     model_precision_choices = _precision_choices_for_device(default_model_device)
     codec_precision_choices = _precision_choices_for_device(default_codec_device)
+    for option, device, precision, choices in (
+        ("--model-precision", default_model_device, default_model_precision, model_precision_choices),
+        ("--codec-precision", default_codec_device, default_codec_precision, codec_precision_choices),
+    ):
+        if precision is not None and precision not in choices:
+            raise ValueError(
+                f"{option} {precision!r} is not supported on {device!r}; "
+                f"choose from: {', '.join(choices)}."
+            )
 
     with gr.Blocks(title="Irodori-TTS Gradio") as demo:
         gr.Markdown("# Irodori-TTS Inference (Cached Runtime)")
@@ -425,7 +443,11 @@ def build_ui(default_checkpoint: str | None = None) -> gr.Blocks:
             model_precision = gr.Dropdown(
                 label="Model Precision",
                 choices=model_precision_choices,
-                value=model_precision_choices[0],
+                value=(
+                    model_precision_choices[0]
+                    if default_model_precision is None
+                    else default_model_precision
+                ),
                 scale=1,
             )
             codec_device = gr.Dropdown(
@@ -437,7 +459,11 @@ def build_ui(default_checkpoint: str | None = None) -> gr.Blocks:
             codec_precision = gr.Dropdown(
                 label="Codec Precision",
                 choices=codec_precision_choices,
-                value=codec_precision_choices[0],
+                value=(
+                    codec_precision_choices[0]
+                    if default_codec_precision is None
+                    else default_codec_precision
+                ),
                 scale=1,
             )
 
@@ -655,13 +681,47 @@ def main() -> None:
         default=None,
         help="Initial model checkpoint: local .pt/.safetensors path or Hugging Face model repo ID.",
     )
+    device_choices = list_available_runtime_devices()
+    parser.add_argument(
+        "--model-device",
+        choices=device_choices,
+        default=None,
+        help="Initial model device (default: automatically selected).",
+    )
+    parser.add_argument(
+        "--model-precision",
+        choices=["fp32", "bf16"],
+        default=None,
+        help="Initial model precision (default: fp32; bf16 requires CUDA/XPU).",
+    )
+    parser.add_argument(
+        "--codec-device",
+        choices=device_choices,
+        default=None,
+        help="Initial codec device (default: automatically selected).",
+    )
+    parser.add_argument(
+        "--codec-precision",
+        choices=["fp32", "bf16"],
+        default=None,
+        help="Initial codec precision (default: fp32; bf16 requires CUDA/XPU).",
+    )
     parser.add_argument("--server-name", default="127.0.0.1")
     parser.add_argument("--server-port", type=int, default=7860)
     parser.add_argument("--share", action="store_true")
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
-    demo = build_ui(default_checkpoint=args.checkpoint)
+    try:
+        demo = build_ui(
+            default_checkpoint=args.checkpoint,
+            default_model_device=args.model_device,
+            default_model_precision=args.model_precision,
+            default_codec_device=args.codec_device,
+            default_codec_precision=args.codec_precision,
+        )
+    except ValueError as exc:
+        parser.error(str(exc))
     demo.queue(default_concurrency_limit=1)
     demo.launch(
         server_name=args.server_name,

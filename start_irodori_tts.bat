@@ -72,7 +72,7 @@ echo.
 
 start "" powershell.exe -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Seconds 5; Start-Process '%WEB_URL%'"
 
-"%UV_EXE%" run --no-sync python gradio_app.py --server-name %SERVER_HOST% --server-port %SERVER_PORT%
+"%UV_EXE%" run --no-sync python gradio_app.py --checkpoint Aratako/Irodori-TTS-v4-Large --model-device cuda --model-precision bf16 --codec-device cuda --codec-precision fp32 --server-name %SERVER_HOST% --server-port %SERVER_PORT%
 
 set "EXIT_CODE=%ERRORLEVEL%"
 echo.
