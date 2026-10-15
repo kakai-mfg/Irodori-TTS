@@ -127,6 +127,33 @@ You can still change the model in the UI. When `--checkpoint` is omitted, the UI
 automatically select a local `checkpoint_*.pt` or `checkpoint_*.safetensors` if available,
 otherwise falling back to `Aratako/Irodori-TTS-v4.1-Small`.
 
+The model field is an editable dropdown. Both UIs read their choices from
+`configs/gradio_models.yaml` at startup. Edit that file to add Hugging Face model IDs
+or local checkpoint paths, then restart the UI. For example:
+
+```yaml
+models:
+  - name: Irodori-TTS-v4-Large
+    checkpoint: Aratako/Irodori-TTS-v4-Large
+  - name: My local model
+    checkpoint: 'E:\models\model.safetensors'
+  - Aratako/Irodori-TTS-v4.1-Small-MF
+```
+
+`name` is an optional display label; `checkpoint` is the value passed to model loading.
+Plain model ID/path strings are also accepted. Relative checkpoint paths are resolved
+from the current working directory, just like direct input. Use `--model-list` with
+either UI to read a different YAML file:
+
+```bash
+uv run --no-sync python gradio_app.py --model-list path/to/my_models.yaml
+```
+
+You can still type a model ID or local path into the dropdown and press Enter, even if
+it is not in the file. `--checkpoint` continues to set the initial selection. An empty
+list (`models: []`) or a missing default file leaves direct input available; an
+explicitly specified missing file or invalid configuration reports a startup error.
+
 Both UIs also accept `--model-device`, `--model-precision`, `--codec-device`, and
 `--codec-precision` to set the initial device and precision selections:
 

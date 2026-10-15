@@ -8,6 +8,7 @@ from pathlib import Path
 import gradio as gr
 
 from irodori_tts.gradio_emoji_palette import EMOJI_PALETTE_CSS, build_emoji_palette
+from irodori_tts.gradio_model_list import load_model_choices
 from irodori_tts.inference_runtime import (
     RuntimeKey,
     SamplingRequest,
@@ -143,8 +144,8 @@ def _resolve_ref_wavs(uploaded_audio: object) -> list[str]:
     return [path for path in paths if path is not None]
 
 
-def _resolve_checkpoint_path(raw_checkpoint: str) -> str:
-    checkpoint = str(raw_checkpoint).strip()
+def _resolve_checkpoint_path(raw_checkpoint: str | None) -> str:
+    checkpoint = "" if raw_checkpoint is None else str(raw_checkpoint).strip()
     if checkpoint == "":
         raise ValueError("checkpoint is required.")
     if is_speaker_inversion_safetensors_path(checkpoint):
@@ -416,6 +417,7 @@ def _clear_runtime_cache() -> str:
 def build_ui(
     default_checkpoint: str | None = None,
     *,
+    model_list_path: str | Path | None = None,
     default_model_device: str | None = None,
     default_model_precision: str | None = None,
     default_codec_device: str | None = None,
@@ -439,6 +441,7 @@ def build_ui(
                 f"{option} {precision!r} is not supported on {device!r}; "
                 f"choose from: {', '.join(choices)}."
             )
+    checkpoint_choices = load_model_choices(model_list_path)
 
     with gr.Blocks(title="Irodori-TTS VoiceDesign Gradio") as demo:
         gr.Markdown("# Irodori-TTS VoiceDesign Inference")
@@ -448,9 +451,12 @@ def build_ui(
         )
 
         with gr.Row():
-            checkpoint = gr.Textbox(
+            checkpoint = gr.Dropdown(
                 label="Model Checkpoint (.pt/.safetensors or HF repo id)",
+                choices=checkpoint_choices,
                 value=default_checkpoint,
+                allow_custom_value=True,
+                info="Select a model, or type a Hugging Face repo ID / local path and press Enter.",
                 scale=4,
             )
             model_device = gr.Dropdown(
@@ -699,6 +705,11 @@ def main() -> None:
         default=None,
         help="Initial model checkpoint: local .pt/.safetensors path or Hugging Face model repo ID.",
     )
+    parser.add_argument(
+        "--model-list",
+        default=None,
+        help="YAML model choices file (default: configs/gradio_models.yaml in the repository).",
+    )
     device_choices = list_available_runtime_devices()
     parser.add_argument(
         "--model-device",
@@ -733,6 +744,7 @@ def main() -> None:
     try:
         demo = build_ui(
             default_checkpoint=args.checkpoint,
+            model_list_path=args.model_list,
             default_model_device=args.model_device,
             default_model_precision=args.model_precision,
             default_codec_device=args.codec_device,

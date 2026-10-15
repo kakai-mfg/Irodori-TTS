@@ -63,19 +63,12 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo Folder: %CD%
-echo uv: %UV_EXE%
-echo URL: %WEB_URL%
-echo.
-echo Press Ctrl+C in this window to stop the server.
+echo Opening a PowerShell window for the server.
+echo Press Ctrl+C in that window to stop the server.
 echo.
 
 start "" powershell.exe -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Seconds 5; Start-Process '%WEB_URL%'"
 
-"%UV_EXE%" run --no-sync python gradio_app.py --checkpoint Aratako/Irodori-TTS-v4-Large --model-device cuda --model-precision bf16 --codec-device cuda --codec-precision fp32 --server-name %SERVER_HOST% --server-port %SERVER_PORT%
-
-set "EXIT_CODE=%ERRORLEVEL%"
-echo.
-echo Irodori-TTS stopped. Exit code: %EXIT_CODE%
-echo.
-exit /b %EXIT_CODE%
+rem Run the server in its own console so Ctrl+C does not interrupt a batch job.
+start "Irodori-TTS" powershell.exe -NoLogo -NoProfile -Command "Write-Host ('Folder: ' + (Get-Location).Path); Write-Host ('uv: ' + $env:UV_EXE); Write-Host ('URL: ' + $env:WEB_URL); Write-Host ''; Write-Host 'Press Ctrl+C in this window to stop the server.'; Write-Host ''; & $env:UV_EXE run --no-sync python gradio_app.py --checkpoint Aratako/Irodori-TTS-v4-Large --model-device cuda --model-precision bf16 --codec-device cuda --codec-precision fp32 --server-name $env:SERVER_HOST --server-port $env:SERVER_PORT; exit $LASTEXITCODE"
+exit /b %ERRORLEVEL%

@@ -1,0 +1,20 @@
+# Model choices shared by both Gradio UIs. Restart the UI after editing this file.
+# A plain model ID/path is also accepted instead of a name/checkpoint mapping.
+models:
+  - name: Irodori-TTS-v4-Large
+    checkpoint: Aratako/Irodori-TTS-v4-Large
+  - name: Irodori-TTS-v4.1-Small
+    checkpoint: Aratako/Irodori-TTS-v4.1-Small
+  - name: Irodori-TTS-v4.1-Small-MF
+    checkpoint: Aratako/Irodori-TTS-v4.1-Small-MF
+  - name: Irodori-TTS-500M-v3
+    checkpoint: Aratako/Irodori-TTS-500M-v3
+  - name: Irodori-TTS-600M-v3-VoiceDesign
+    checkpoint: Aratako/Irodori-TTS-600M-v3-VoiceDesign
+  - name: Irodori-TTS-500M-v2
+    checkpoint: Aratako/Irodori-TTS-500M-v2
+  - name: Irodori-TTS-500M-v2-VoiceDesign
+    checkpoint: Aratako/Irodori-TTS-500M-v2-VoiceDesign
+  # Local paths work too; use single quotes for Windows paths:
+  # - name: My local model
+  #   checkpoint: 'C:\models\model.safetensors'
