@@ -94,6 +94,10 @@ conflicts = [[
     { package = "irodori-tts", extra = "xpu" },
 ]]
 
+[options]
+exclude-newer = "2026-10-08T14:15:39.5188571Z"
+exclude-newer-span = "P1W"
+
 [[package]]
 name = "absl-py"
 version = "2.4.0"

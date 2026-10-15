@@ -69,6 +69,8 @@ conflicts = [
     ],
 ]
 
+exclude-newer = "1 week"
+
 [tool.uv.sources]
 torch = [
     { index = "pytorch-cpu", extra = "cpu", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
