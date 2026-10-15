@@ -413,8 +413,9 @@ def _clear_runtime_cache() -> str:
     return "cleared loaded model from memory"
 
 
-def build_ui() -> gr.Blocks:
-    default_checkpoint = _default_checkpoint()
+def build_ui(default_checkpoint: str | None = None) -> gr.Blocks:
+    if default_checkpoint is None:
+        default_checkpoint = _default_checkpoint()
     default_model_device = _default_model_device()
     default_codec_device = _default_codec_device()
     device_choices = list_available_runtime_devices()
@@ -667,13 +668,18 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Gradio app for caption-conditioned Irodori-TTS checkpoints."
     )
+    parser.add_argument(
+        "--checkpoint",
+        default=None,
+        help="Initial model checkpoint: local .pt/.safetensors path or Hugging Face model repo ID.",
+    )
     parser.add_argument("--server-name", default="127.0.0.1")
     parser.add_argument("--server-port", type=int, default=7861)
     parser.add_argument("--share", action="store_true")
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
-    demo = build_ui()
+    demo = build_ui(default_checkpoint=args.checkpoint)
     demo.queue(default_concurrency_limit=1)
     demo.launch(
         server_name=args.server_name,

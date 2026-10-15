@@ -113,7 +113,20 @@ For VoiceDesign with caption and reference-audio conditioning:
 uv run --no-sync python gradio_app_voicedesign.py --server-name 0.0.0.0 --server-port 7861
 ```
 
-Open `http://localhost:7861`. Both UIs default to `Aratako/Irodori-TTS-v4.1-Small`.
+Open `http://localhost:7861`.
+
+Both UIs accept `--checkpoint` to set the initial model field to a Hugging Face model
+repo ID or a local `.pt` / `.safetensors` path. For example:
+
+```bash
+uv run --no-sync python gradio_app.py --checkpoint Aratako/Irodori-TTS-v4.1-Small-MF
+uv run --no-sync python gradio_app_voicedesign.py --checkpoint path/to/model.safetensors
+```
+
+You can still change the model in the UI. When `--checkpoint` is omitted, the UIs
+automatically select a local `checkpoint_*.pt` or `checkpoint_*.safetensors` if available,
+otherwise falling back to `Aratako/Irodori-TTS-v4.1-Small`.
+
 The hosted [v4.1-Small demo](https://huggingface.co/spaces/Aratako/Irodori-TTS-v4.1-Small-Demo)
 also supports caption and reference-audio conditioning.
 
