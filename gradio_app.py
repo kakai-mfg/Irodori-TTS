@@ -738,6 +738,7 @@ def main() -> None:
     demo.launch(
         server_name=args.server_name,
         server_port=args.server_port,
+        inbrowser=True,
         share=bool(args.share),
         debug=bool(args.debug),
         css=EMOJI_PALETTE_CSS,

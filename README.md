@@ -115,6 +115,9 @@ uv run --no-sync python gradio_app_voicedesign.py --server-name 0.0.0.0 --server
 
 Open `http://localhost:7861`.
 
+Both applications automatically open the default browser once the Web UI is ready.
+This also applies when launching them with the Windows `.bat` files.
+
 Both UIs accept `--checkpoint` to set the initial model field to a Hugging Face model
 repo ID or a local `.pt` / `.safetensors` path. For example:
 
