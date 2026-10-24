@@ -1030,8 +1030,11 @@ class InferenceRuntime:
         req: SamplingRequest,
         *,
         log_fn: Callable[[str], None] | None = None,
+        cancel_check: Callable[[], None] | None = None,
     ) -> SamplingResult:
         def _log(msg: str) -> None:
+            if cancel_check is not None:
+                cancel_check()
             if log_fn is not None:
                 log_fn(msg)
 
@@ -1201,6 +1204,8 @@ class InferenceRuntime:
             ),
             torch.inference_mode(),
         ):
+            if cancel_check is not None:
+                cancel_check()
             t0 = _measure_start(self.model_device)
             text_ids, text_mask = self.tokenizer.batch_encode(
                 [normalized_text] * num_candidates,
@@ -1370,6 +1375,7 @@ class InferenceRuntime:
                     speaker_uncond_mode=req.speaker_uncond_mode,
                     num_steps=num_steps,
                     seed=used_seed,
+                    cancel_check=cancel_check,
                 )
             else:
                 z_patched = sample_euler_rf_cfg(
@@ -1401,6 +1407,7 @@ class InferenceRuntime:
                     speaker_kv_min_t=speaker_kv_min_t,
                     t_schedule_mode=str(req.t_schedule_mode),
                     sway_coeff=float(req.sway_coeff),
+                    cancel_check=cancel_check,
                 )
             stage_sec = _measure_end(self.model_device, t0)
             sample_stage = (
@@ -1427,6 +1434,8 @@ class InferenceRuntime:
             if decode_mode == "batch":
                 audio_batch = self.codec.decode_latent(z).cpu()
                 for i in range(num_candidates):
+                    if cancel_check is not None:
+                        cancel_check()
                     audio_i = audio_batch[i]
                     max_samples = target_samples
                     if bool(req.trim_tail):
@@ -1444,6 +1453,8 @@ class InferenceRuntime:
                     trimmed_audios.append(audio_i[:, :max_samples])
             else:
                 for i in range(num_candidates):
+                    if cancel_check is not None:
+                        cancel_check()
                     audio_i = self.codec.decode_latent(z[i : i + 1]).cpu()[0]
                     max_samples = target_samples
                     if bool(req.trim_tail):

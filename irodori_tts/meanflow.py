@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import torch
@@ -503,8 +504,11 @@ def sample_euler_meanflow(
     speaker_uncond_mode: str = "mask",
     num_steps: int = 4,
     seed: int = 0,
+    cancel_check: Callable[[], None] | None = None,
 ) -> torch.Tensor:
     """Linear MeanFlow sampler from Irodori time 1 to 0 (default: 4 NFE)."""
+    if cancel_check is not None:
+        cancel_check()
     if str(model.cfg.flow_parameterization).strip().lower() != "meanflow":
         raise ValueError("sample_euler_meanflow requires a MeanFlow model.")
     if num_steps <= 0:
@@ -543,6 +547,8 @@ def sample_euler_meanflow(
     )
     schedule = torch.linspace(1.0, 0.0, num_steps + 1, device=device, dtype=torch.float32)
     for index in range(num_steps):
+        if cancel_check is not None:
+            cancel_check()
         t_value = schedule[index]
         next_value = schedule[index + 1]
         t_vec = t_value.expand(batch_size)

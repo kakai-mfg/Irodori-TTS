@@ -118,6 +118,11 @@ Open `http://localhost:7861`.
 Both applications automatically open the default browser once the Web UI is ready.
 This also applies when launching them with the Windows `.bat` files.
 
+Use **Stop** beside **Generate** to cancel generation in your browser session.
+Cancellation takes effect between sampling steps or processing stages, so an active
+model load, codec operation, or GPU step must finish first. The loaded model and
+previous audio results remain available for the next generation.
+
 Both UIs accept `--checkpoint` to set the initial model field to a Hugging Face model
 repo ID or a local `.pt` / `.safetensors` path. For example:
 

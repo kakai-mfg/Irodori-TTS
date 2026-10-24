@@ -8,6 +8,13 @@ from pathlib import Path
 import gradio as gr
 
 from irodori_tts.gradio_emoji_palette import EMOJI_PALETTE_CSS, build_emoji_palette
+from irodori_tts.gradio_generation import (
+    GenerationControl,
+    begin_generation,
+    cancellable_generation,
+    end_generation,
+    stop_generation,
+)
 from irodori_tts.gradio_model_list import load_model_choices
 from irodori_tts.inference_runtime import (
     RuntimeKey,
@@ -214,6 +221,7 @@ def _load_model(
     return status_text
 
 
+@cancellable_generation(audio_outputs=MAX_GRADIO_CANDIDATES)
 def _run_generation(
     checkpoint: str,
     model_device: str,
@@ -245,6 +253,7 @@ def _run_generation(
     speaker_kv_min_t_raw: str,
     speaker_kv_max_layers_raw: str,
     lora_adapter_raw: str,
+    generation_control: GenerationControl,
 ) -> tuple[object, ...]:
     def stdout_log(msg: str) -> None:
         print(msg, flush=True)
@@ -256,6 +265,7 @@ def _run_generation(
         codec_device=codec_device,
         codec_precision=codec_precision,
     )
+    generation_control.check()
 
     if str(text).strip() == "":
         raise ValueError("text is required.")
@@ -292,6 +302,7 @@ def _run_generation(
     ref_ensure_max = True
 
     runtime, reloaded = get_cached_runtime(runtime_key)
+    generation_control.check()
     stdout_log(f"[gradio] runtime: {'reloaded' if reloaded else 'reused'}")
     stdout_log(
         (
@@ -355,13 +366,16 @@ def _run_generation(
             lora_adapter=lora_adapter,
         ),
         log_fn=stdout_log,
+        cancel_check=generation_control.check,
     )
 
+    generation_control.check()
     out_dir = Path("gradio_outputs")
     out_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     out_paths: list[str] = []
     for i, audio in enumerate(result.audios, start=1):
+        generation_control.check()
         out_path = save_wav(
             out_dir / f"sample_{stamp}_{i:03d}.wav",
             audio.float(),
@@ -425,6 +439,7 @@ def build_ui(
     checkpoint_choices = load_model_choices(model_list_path)
 
     with gr.Blocks(title="Irodori-TTS Gradio") as demo:
+        generation_control = gr.State(GenerationControl())
         gr.Markdown("# Irodori-TTS Inference (Cached Runtime)")
         gr.Markdown(
             "Reference-audio cloning / Speaker Inversion UI. "
@@ -593,7 +608,9 @@ def build_ui(
                 )
             lora_adapter_raw = gr.Textbox(label="LoRA Adapter Directory (optional)", value="")
 
-        generate_btn = gr.Button("Generate", variant="primary")
+        with gr.Row():
+            generate_btn = gr.Button("Generate", variant="primary")
+            stop_btn = gr.Button("Stop", variant="stop", interactive=False)
 
         out_audios: list[gr.Audio] = []
         num_rows = (
@@ -618,7 +635,12 @@ def build_ui(
         out_log = gr.Textbox(label="Run Log", lines=8)
         out_timing = gr.Textbox(label="Timing", lines=8)
 
-        generate_btn.click(
+        generation_event = generate_btn.click(
+            begin_generation,
+            inputs=[generation_control],
+            outputs=[generate_btn, stop_btn, out_log],
+            queue=False,
+        ).success(
             _run_generation,
             inputs=[
                 checkpoint,
@@ -651,8 +673,15 @@ def build_ui(
                 speaker_kv_min_t_raw,
                 speaker_kv_max_layers_raw,
                 lora_adapter_raw,
+                generation_control,
             ],
             outputs=[*out_audios, out_log, out_timing],
+        )
+        generation_event.then(
+            end_generation, outputs=[generate_btn, stop_btn], queue=False
+        )
+        stop_btn.click(
+            stop_generation, inputs=[generation_control], outputs=[out_log], queue=False
         )
         model_device.change(
             _on_model_device_change, inputs=[model_device], outputs=[model_precision]

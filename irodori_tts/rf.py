@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 
 import torch
 
@@ -143,6 +144,7 @@ def sample_euler_rf_cfg(
     speaker_kv_min_t: float | None = None,
     t_schedule_mode: str = "linear",
     sway_coeff: float = -1.0,
+    cancel_check: Callable[[], None] | None = None,
 ) -> torch.Tensor:
     """
     Euler sampling over RF ODE with text/reference/caption conditioning CFG.
@@ -150,6 +152,8 @@ def sample_euler_rf_cfg(
     Returns:
       latent sequence in patched space, shape (B, sequence_length, patched_latent_dim)
     """
+    if cancel_check is not None:
+        cancel_check()
     device = model.device
     dtype = model.dtype
     batch_size = text_input_ids.shape[0]
@@ -457,6 +461,8 @@ def sample_euler_rf_cfg(
     speaker_kv_active = speaker_kv_scale is not None
 
     for i in range(num_steps):
+        if cancel_check is not None:
+            cancel_check()
         t = t_schedule[i]
         t_next = t_schedule[i + 1]
         tt = torch.full((batch_size,), t, device=device, dtype=dtype)
