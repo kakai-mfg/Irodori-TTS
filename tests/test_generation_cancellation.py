@@ -103,8 +103,12 @@ class GradioCancellationTests(unittest.IsolatedAsyncioTestCase):
                     demo.close()
 
     async def test_stop_preserves_outputs_and_allows_next_generation_in_both_uis(self):
-        for module_name in ("gradio_app", "gradio_app_voicedesign"):
-            with self.subTest(module=module_name), TemporaryDirectory() as output_dir:
+        for module_name, length_check_enabled in (
+            ("gradio_app", False),
+            ("gradio_app", True),
+            ("gradio_app_voicedesign", False),
+        ):
+            with self.subTest(module=module_name, length_check=length_check_enabled), TemporaryDirectory() as output_dir:
                 module = importlib.import_module(module_name)
                 demo = module.build_ui(
                     default_checkpoint="Aratako/Irodori-TTS-v4-Large",
@@ -126,7 +130,8 @@ class GradioCancellationTests(unittest.IsolatedAsyncioTestCase):
 
                 class Runtime:
                     model_cfg = SimpleNamespace(
-                        use_caption_condition=True, use_speaker_condition_resolved=False
+                        use_caption_condition=True, use_speaker_condition_resolved=False,
+                        flow_parameterization="meanflow",
                     )
 
                     def synthesize(self, req, *, log_fn, cancel_check):
@@ -140,6 +145,8 @@ class GradioCancellationTests(unittest.IsolatedAsyncioTestCase):
                 for i, block in enumerate(generate.inputs):
                     if block.label == "Text":
                         values[i] = "hello"
+                    if block.label == "Length Check (two-pass)":
+                        values[i] = length_check_enabled
 
                 async def call(name, inputs, session=state):
                     return await demo.process_api(functions[name], inputs, state=session)
